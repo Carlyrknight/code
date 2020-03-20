@@ -45,18 +45,43 @@ selected_text <- selected_data %>%
   mutate(CompanyName = str_replace(CompanyName, "b'", ""))%>%
   mutate(CompanyName = str_replace(CompanyName, "'", ""))
 
-#write to files
-setwd("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time/")
+#group by company
+selected_text_company <- selected_text %>%
+  mutate(text2 = paste("YEAR: ", Year, text, sep = " \n "))%>%
+  arrange(CompanyName, Year)%>%
+  group_by(CompanyName) %>% 
+  mutate(text2_time = paste0(text2, collapse = "\n")) 
 
-for (row in 1:nrow(selected_text)){
-  
-print(row)
-  
-name<- paste(selected_text[row, 'CompanyName'], selected_text[row, 'Year'], selected_text[row, 'Filename'], sep = "_")
+selected_text_company <- unique(selected_text_company %>%
+  select(CompanyName, text2_time))
 
-textlines <- as.character(selected_text[row, 'text'])
+setwd("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time_2/")
 
-writeLines(textlines , name)
+for (row in 1:nrow(selected_text_company)){
   
-}
+  name = selected_text_company[row, 'CompanyName']
+  
+  textlines <- as.character(selected_text_company[row, 'text2_time'])
+
+  writeLines(text= textlines , paste("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time_2/", name, ".txt", sep = ""))
+  
+  
+  }
+  
+writeLines(text= textlines , paste("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time_2/", name, ".txt", sep = ""))
+
+# #write to files
+# setwd("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time/")
+# 
+# for (row in 1:nrow(selected_text)){
+#   
+# print(row)
+#   
+# name<- paste(selected_text[row, 'CompanyName'], selected_text[row, 'Year'], selected_text[row, 'Filename'], sep = "_")
+# 
+# textlines <- as.character(selected_text[row, 'text'])
+# 
+# writeLines(textlines , name)
+#   
+# }
 
