@@ -47,7 +47,7 @@ selected_text <- selected_data %>%
 
 #group by company
 selected_text_company <- selected_text %>%
-  mutate(text2 = paste("YEAR: ", Year, text, sep = " \n "))%>%
+  mutate(text2 = paste("\n YEAR: ", Year, text, sep = " \n "))%>%
   arrange(CompanyName, Year)%>%
   group_by(CompanyName) %>% 
   mutate(text2_time = paste0(text2, collapse = "\n")) 
@@ -68,7 +68,7 @@ for (row in 1:nrow(selected_text_company)){
   
   }
   
-writeLines(text= textlines , paste("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time_2/", name, ".txt", sep = ""))
+#writeLines(text= textlines , paste("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time_2/", name, ".txt", sep = ""))
 
 # #write to files
 # setwd("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/filesforbarbara/30_companies_over_time/")
