@@ -56,6 +56,9 @@ tbl1<-tbl1 %>%
   dplyr::select(document_name, paragraph_filename, Year, text)%>%
   filter(Year>=1930)
 
+#docs<-tbl1$text
+#save(docs, file="/Users/carlyknight/Documents/Data/Annual Report/report_paragraphs/future_texts/doctext.Rdata')
+
 #tokenize for collocations
 tbl_tokens <- tokens(tbl1$text, remove_punct = TRUE, remove_separators=TRUE, remove_symbols=TRUE, remove_numbers = TRUE, remove_twitter =TRUE) %>% 
   tokens_tolower() %>%
