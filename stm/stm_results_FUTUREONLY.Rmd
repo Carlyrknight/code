@@ -1,0 +1,154 @@
+---
+title: "STM analysis for future perfect project"
+author: "Carly Knight"
+date: "6/27/2020"
+output: 
+  html_document:
+    toc: yes
+    toc_float: true
+    number_sections: true
+---
+
+#Setup 
+```{r setup}
+knitr::opts_knit$set(root.dir = "/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/")
+
+library(stats)
+library(zoo)
+library(tidyverse)
+library(TraMineR)
+library(knitr)
+library(lfe)
+library(tidytext)
+library(stm)
+library(cowplot)
+library(dplyr)
+
+theme_set(theme_minimal(base_size = 14))
+```
+# Load texts
+```{r  texts}
+#load stm
+load("stm10_futurepara_FUTUREONLY.RData")
+
+#load texts
+load("~/Documents/Data/Annual Report/report_paragraphs/future_texts_paragraphs_futureonly/doctext.Rdata")
+docs1<-out$meta %>%
+  left_join(docs)
+
+doctext<- docs1$text
+```
+
+# Topics: 10
+```{r  stm5}
+labelTopics(stm10, 1:10)
+
+plot(effects10, "Year", method = "continuous", topics =  1:10,
+     main ="Topics")
+```
+
+
+# Topics: 30
+```{r stm30a}
+load("stm30_futurepara_FUTUREONLY.RData")
+labelTopics(stm30, 1:30)
+```
+
+### Topics of interest: 30
+```{r stm30b}
+labelTopics(stm30, c(1, 18,25,28))
+
+plot(effects30, "Year", method = "continuous", topics = c(1, 18,25,28),
+     main ="Topics")
+
+
+#print thoughts (suggests we need to get rid of this one)
+findThoughts(stm30,n = 1, texts = doctext, topics = 1)
+
+findThoughts(stm30,n = 5, texts = doctext, topics = 18)
+
+findThoughts(stm30,n = 5, texts = doctext, topics = 25)
+
+findThoughts(stm30,n = 5, texts = doctext, topics = 28)
+
+
+rm(stm30, metadata, effects30, out)
+gc()
+```
+
+# Topics: 50
+```{r stm50a}
+load("stm50_futurepara_FUTUREONLY.RData")
+labelTopics(stm50, 1:50)
+```
+
+### Topics of interest: 50
+```{r stm50b}
+labelTopics(stm50, c(17, 23, 25, 28, 29, 30, 34))
+            
+plot(effects50, "Year", method = "continuous", topics = c(17, 23, 25, 28, 29, 30, 34),
+     main ="Topics")
+
+#load texts
+load("~/Documents/Data/Annual Report/report_paragraphs/future_texts_paragraphs_futureonly/doctext.Rdata")
+docs1<-out$meta %>%
+  left_join(docs)
+
+doctext<- docs1$text
+
+#print thoughts (suggests we need to get rid of this one below)
+findThoughts(stm50,n = 5, texts = doctext, topics = 17)
+
+findThoughts(stm50,n = 5, texts = doctext, topics = 23)
+
+findThoughts(stm50,n = 5, texts = doctext, topics = 25)
+
+findThoughts(stm50,n = 5, texts = doctext, topics = 28)
+
+findThoughts(stm50,n = 5, texts = doctext, topics = 30)
+
+findThoughts(stm50,n = 5, texts = doctext, topics = 34)
+
+gc()
+```
+
+# Topics: 70
+```{r stm70a}
+load("stm70_futurepara_FUTUREONLY.RData")
+labelTopics(stm70, 1:70)
+```
+### Topics of interest: 70
+```{r stm70b}
+labelTopics(stm70, c(25, 27, 29, 30, 34, 35, 58, 59, 61, 70))
+
+plot(effects70, "Year", method = "continuous", topics = c(25, 27, 29, 30, 34, 35, 58, 59, 61, 70),
+     main ="Topics")
+
+```
+
+### Thoughts from sTM 70
+```{r stm70c}
+findThoughts(stm70,n = 3, texts = doctext, topics = 25)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 27)
+
+#this should be deletered
+findThoughts(stm70,n = 3, texts = doctext, topics = 29)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 30)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 34)
+
+#this one shoudl be elimianted
+findThoughts(stm70,n = 3, texts = doctext, topics = 35)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 58)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 59)
+
+findThoughts(stm70,n = 3, texts = doctext, topics = 61)
+
+#I have no idea what this is.
+findThoughts(stm70,n = 10, texts = doctext, topics = 70)
+
+```
