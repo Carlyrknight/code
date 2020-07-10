@@ -11,6 +11,7 @@ library(tidytext)
 library(dplyr)
 library(ggplot2)
 library(stringr)
+library(arrow)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -160,8 +161,38 @@ numbers<- numbers %>%
   mutate(percent_numbers = (count_nums + count_digits) / count_words)
 ```
 
+#Integrate python STM results
+```{r python}
+dtm_parquet <- read_parquet("/Users/carlyknight/Documents/Data/FuturePerfect/dynamic_topic_models/topic5_dtm.parquet")
+
+dtm_parquet<-dtm_parquet%>%
+    mutate(topic=paste("t", topic, sep = ""))%>%
+    mutate(filename = gsub(".xml", "", Filename))%>%
+  mutate(Year = as.numeric(Year))
+
+#keywords
+dtm_parquet_topics<-unique(dtm_parquet%>% select(topic, keywords))
+
+#select vars for conversion
+wide_dtm_parquet<-dtm_parquet%>%
+  select(filename, Year, topic, weight)%>%
+   spread(key=topic, value=weight)
+
+#merge into datafiles
+data_full<- data %>%
+  left_join(wide_dtm_parquet, by =c('filename', 'Year'))
+
+data_text<- data1 %>%
+  left_join(wide_dtm_parquet, by =c('filename', 'Year'))
+```
+
+
+
 ```{r save}
 library(gdata)
-keep(data, data1, tbl_tokens, numbers, sure = TRUE)
+keep(data_full, data_text, tbl_tokens, numbers, dtm_parquet_topics, sure = TRUE)
+
+#data_text: numbers removed
+#data_full: numbers remain
 save.image("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/dtm/text_data_prep.R")
 ```

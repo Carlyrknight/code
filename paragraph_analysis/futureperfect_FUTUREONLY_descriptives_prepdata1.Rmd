@@ -1,0 +1,202 @@
+---
+title: "Data Descriptives, Prep Data (Part 1): THIS IS FOR FUTURE-ONLY PARAGRAPHS"
+author: "Carly Knight"
+date: "7/72020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(arrow)
+
+
+data_loc = "~/Documents/Data/Annual Report/report_paragraphs/future_texts_paragraphs_futureonly/"
+knitr::opts_knit$set(root.dir = normalizePath(data_loc))
+```
+
+# Open Data
+```{r open}
+
+#create text tibble
+worker_list_of_files <- list.files(".", pattern = "*.txt")
+
+#create text tibble
+list_of_files <- list.files(pattern = "*.txt")
+
+tbl <- list_of_files %>% 
+  map_chr(~ read_file(.)) %>% 
+  tibble(text = .)
+
+tbl$paragraph_filename<-list_of_files
+
+#read in metadata
+metadata<- read.csv("metadata_futureperfect_paragraphs_futureonly.csv", quote="", stringsAsFactors=FALSE) %>%
+  mutate(Filename = gsub(".xml", "", Filename)) %>%
+  mutate(paragraph_filename= paste(Filename, "_P", Paragraph, ".txt", sep = ""))
+  
+nrow(metadata) 
+#170,157
+
+#define narrow naics and broad naics
+metadata <- metadata %>%
+  mutate(NAIC_2   = substr(NAIC, 1, 2)) %>%
+  mutate(NAIC_cat= recode(NAIC_2,`11`= "Agriculture",
+                          `21` = "Mining and Extraction",
+                          `22` = "Utilities", 
+                          `23` = "Construction",
+                          `31` ="Manufacturing", 
+                          `32`= "Manufacturing", 
+                          `33` = "Manufacturing", 
+                          `42`= "Wholesale", 
+                          `44`= "Retail",
+                          `45`= "Retail",
+                          `48`= "Transportation and Warehousing", 
+                          `49`= "Transportation and Warehousing", 
+                          `51`= "Information", 
+                          `52` = "Finance and Insurance", 
+                          `53`= "Real Estate and Rental Leasing", 
+                          `54`= "Professional Scientific and Technical Services", 
+                          `55`= "Management", 
+                          `56`= "Administrative support and Waste management",
+                          `62`= "Healthcare and Social" , 
+                          `71`= "Arts Entertainment and Recreation", 
+                          `72` = "Accomodation and Food service", 
+                          `81`= "Other Services"))
+
+metadata <- metadata %>%
+  mutate(NAIC_broad = recode(NAIC_cat, "Transportation and Warehousing"  = "Wholesale and shipping",
+                             "Wholesale" = "Wholesale and shipping",
+                             "Finance and Insurance" = "FIRE",
+                             "Real Estate and Rental Leasing" = "FIRE",
+                             "Manufacturing" ="Manufacturing",
+                             "Information" = "Info. and professional services",
+                             "Professional Scientific and Technical Services" = "Info. and professional services",
+                             "Administrative support and Waste management" = "Info. and professional services",
+                             "Management" = "Info. and professional services",
+                             "Retail" = "Retail, social and other" ,
+                              "Accomodation and Food service"= "Retail, social and other" ,
+                             "Other Services"= "Retail, social and other" ,
+                             "Healthcare and Social" = "Retail, social and other" ,
+                             "Arts Entertainment and Recreation"= "Retail, social and other" ,
+                             "Agriculture"  = "Primary, utilities and construction",
+                             "Mining and Extraction" = "Primary, utilities and construction",
+                              "Utilities" = "Primary, utilities and construction",
+                             "Construction"= "Primary, utilities and construction"))
+                             
+metadata<- metadata %>%
+  group_by(Year)%>%
+  mutate(quantile_rank = ntile(AnrAssetDispIdxNum,4))
+                             
+#merge metadata + txt files
+tbl1 <- left_join(tbl, metadata, by = "paragraph_filename")
+nrow(tbl1)
+#156,748
+
+#decade
+floor_decade    = function(value){ return(value - value %% 10) }
+
+data<-tbl1%>%
+  filter(Year>=1930 & Year <2005)%>%
+  mutate(decade = floor_decade(Year))%>%
+  mutate(numwords_r = str_count(text))
+```
+
+
+# Prep Text Data
+```{r text}
+#create my own stop words
+mystopwords <- tibble(word = c("co", "a", "cco", "the", "thc", "sk", "dca", "cg", "pap", "po", "txu", "corco", "cobo", "ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out", "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "who", "as", "from", "him", "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while", "above", "both", "up", "to", "ours", "had", "she", "all", "no", "when", "at", "any", "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because", "what", "over", "why", "so", "can", "did", "not",  "under", "he", "you", "herself", "has", "just", "where", "too", "only", "myself", "which", "those", "i", "after", "few", "whom", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "how", "further", "was", "here", "than", "but", "oh", "or", "on"))
+         
+#clean: words
+data1<-data %>%
+  mutate(text = gsub("\\*", "", text)) %>%
+  mutate(text = tolower(text)) %>%
+  mutate(text = gsub("[[:digit:]]", "", text))%>%
+  mutate(text = gsub("[[:punct:]]", "", text))
+
+#tokenize 
+tbl_tokens <- data1 %>%
+  unnest_tokens(word, text) %>%
+  mutate(ncharacters = nchar(word))%>%
+  anti_join(mystopwords)
+
+low_freq <- tbl_tokens %>%
+  count(word, sort = TRUE)%>%
+  filter(n <=30)
+
+short_word<- tbl_tokens %>%
+  filter(ncharacters <=2)
+
+low_freq_words<- tibble(word = low_freq$word)
+short_words <- tibble(word = short_word$word)
+
+#remove low-frequency misspelings & 2 characters or less
+tbl_tokens<- tbl_tokens %>%
+  anti_join(low_freq_words) %>%
+  anti_join(short_words)
+```
+
+# Prep Number Data
+```{r numbers}
+number_words<-read.csv(file = "/Users/carlyknight/Documents/Data/dictionaries/liwc2015dict.csv")   
+
+number_words<- as_tibble(number_words)%>%
+  filter(var == "Number") %>%
+  mutate(word = gsub("\\*", "", word))
+
+number_words <- as.vector(number_words$word)
+number_match <- str_c(number_words, collapse = "|")
+
+#clean: numbers
+numbers<- data %>%
+  mutate(text = gsub("\\*", "", text)) %>%
+  mutate(text = tolower(text)) %>%
+  mutate(count_digits = str_count(text, "[[:digit:]]+\\.*[[:digit:]]*"))%>%
+  mutate(count_nums = str_count(text, number_match))%>%
+  mutate(count_words = str_count(text, '\\w+')) 
+
+numbers<- numbers %>%
+  mutate(percent_numbers = (count_nums + count_digits) / count_words)
+```
+
+#Integrate python STM results
+```{r python}
+#dtm_parquet <- read_parquet("/Users/carlyknight/Documents/Data/FuturePerfect/dynamic_topic_models/topic5_dtm.parquet")
+
+#dtm_parquet<-dtm_parquet%>%
+#    mutate(topic=paste("t", topic, sep = ""))%>%
+#    mutate(filename = gsub(".xml", "", Filename))%>%
+#  mutate(Year = as.numeric(Year))
+
+#keywords
+#dtm_parquet_topics<-unique(dtm_parquet%>% select(topic, keywords))
+
+#select vars for conversion
+#wide_dtm_parquet<-dtm_parquet%>%
+# select(filename, Year, topic, weight)%>%
+#   spread(key=topic, value=weight)
+
+#merge into datafiles
+#data_full<- data %>%
+#  left_join(wide_dtm_parquet, by =c('filename', 'Year'))
+data_full <- data
+
+#data_text<- data1 %>%
+#  left_join(wide_dtm_parquet, by =c('filename', 'Year'))
+data_text<- data1
+```
+
+
+
+```{r save}
+library(gdata)
+keep(data_full, data_text, tbl_tokens, numbers, sure = TRUE)
+
+#data_text: numbers removed
+#data_full: numbers remain
+save.image("text_data_prep_futureonly.R")
+```

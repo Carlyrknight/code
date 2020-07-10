@@ -1,0 +1,63 @@
+
+
+ The software Multidimensional Analysis Tagger (MAT) is copyrighted
+ by the author, Andrea Nini. The author grants
+ permission to use this software for any purpose,
+ provided that any reference to the author and
+ the software is given when the software is
+ used in publications or presentations by using
+ the reference indicated in the manual.
+
+ IN NO EVENT SHALL THE AUTHOR OR DISTRIBUTORS
+ BE LIABLE TO ANY PARTY FOR DIRECT,
+ INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING
+ OUT OF THE USE OF THIS SOFTWARE.
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS,
+ AND THE AUTHOR AND DISTRIBUTORS HAVE NO OBLIGATION
+ TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Multidimensional analysis tagger (macOS) v 1.3.1
+
+Choose a function:
+Tag a folder of texts [T]
+Only Analyse a folder of MAT texts [O]
+Tag & Analyse a folder of texts [A]
+Visualise the Dimension features in a folder of MAT text [V]
+Loading...
+Tokens for type/token ratio:
+Starting Stanford Tagger
+Stanford Tagger tagging 88172618.txt
+Loading default properties from tagger /var/folders/yw/bwc05_0510nc6269nx5zvbt00000gn/T/par-6361726c796b6e69676874/cache-fb0f408832902a591700a30464d0a2fbb9b9cac9/inc/wsj-0-18-left3words.tagger
+Reading POS tagger model from /var/folders/yw/bwc05_0510nc6269nx5zvbt00000gn/T/par-6361726c796b6e69676874/cache-fb0f408832902a591700a30464d0a2fbb9b9cac9/inc/wsj-0-18-left3words.tagger ... done [0.4 sec].
+Tagged 1820 words at 5481.93 words per second.
+Stanford Tagger tagging 88172620.txt
+Loading default properties from tagger /var/folders/yw/bwc05_0510nc6269nx5zvbt00000gn/T/par-6361726c796b6e69676874/cache-fb0f408832902a591700a30464d0a2fbb9b9cac9/inc/wsj-0-18-left3words.tagger
+Reading POS tagger model from /var/folders/yw/bwc05_0510nc6269nx5zvbt00000gn/T/par-6361726c796b6e69676874/cache-fb0f408832902a591700a30464d0a2fbb9b9cac9/inc/wsj-0-18-left3words.tagger ... done [0.4 sec].
+Tagged 1503 words at 5608.21 words per second.
+Stanford Tagger tagging ended
+Starting MAT
+MAT tagging 88172618
+MAT tagging 88172620
+Tagging completed
+Counting tags of 88172620
+Counting tags of 88172618
+Calculating zscores for 88172620
+Calculating zscores for 88172618
+Calculating zscores for corpus
+Calculating Dimensions for 88172620
+Calculating Dimensions for 88172618
+Calculating Dimensions for corpus
+Creating plots
+Analysis completed

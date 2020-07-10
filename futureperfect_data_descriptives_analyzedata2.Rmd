@@ -14,12 +14,17 @@ library(stringr)
 library(readxl)
 knitr::opts_chunk$set(echo = TRUE)
 
+rm(list = ls())
 load("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/dtm/text_data_prep.R")
+
+#data_text (data1): numbers removed
+#data_full (data): numbers remain
+#format(object.size(tbl_tokens), units = "Gb") #8.2Gb
 ```
 
 # Basics Descriptives: Document Level
 ```{r basic}
-summary<-data1 %>%
+summary<-data_text %>%
   mutate(paragraphs_dropped = num_paragraphs_prespellcheck - num_paragraphs_postspellcheck)%>%
   group_by(Year)%>%
   summarize(mean_numwords = mean(numwords_r, na.rm=T), 
@@ -83,6 +88,7 @@ decade_words_idf %>%
 #Concreteness ratings
 #http://crr.ugent.be/archives/1330
 concrete <- read.csv(file = "~/Dropbox/PROJECTS/ConceptionsofRisk/data/dictionaries/Concreteness_ratings_Brysbaert_et_al_BRM.csv")
+
 concrete<-concrete %>%
   mutate(word = tolower(Word))
 
@@ -93,6 +99,11 @@ pos_emo<- read_excel("~/Documents/Data/dictionaries/LoughranMcDonald_SentimentWo
 uncertainty<- read.csv(file = "~/Dropbox/PROJECTS/ConceptionsofRisk/data/dictionaries/uncertainty_businss_loughran_mcdonald.csv")
 weak_modal<- read_excel("~/Documents/Data/dictionaries/LoughranMcDonald_SentimentWordLists_2018.xlsx", sheet = "WeakModal",col_names = "word")
 strong_modal<- read_excel("~/Documents/Data/dictionaries/LoughranMcDonald_SentimentWordLists_2018.xlsx", sheet = "StrongModal",col_names = "word")
+
+#concrete
+concrete <- concrete %>%select(word, Conc.M)
+  
+#future
 future_words <-read.csv(file = "/Users/carlyknight/Documents/Data/dictionaries/liwc2015dict.csv")   
 future_words<- as_tibble(future_words)%>%
   filter(var == "FocusFuture")%>%
@@ -107,7 +118,7 @@ weak_modal<- weak_modal %>% mutate(word = tolower(word)) %>% mutate(weakmod = 1)
 uncertainty<- uncertainty %>% mutate(word = tolower(word)) %>% mutate(uncertainty = 1)
 constraint<- constraint %>% mutate(word = tolower(word)) %>% mutate(constraint = 1)
 futurewords<- future_words %>% mutate(word = tolower(word)) %>% mutate(future = 1)
-
+concrete<- concrete %>% mutate(word = tolower(word)) %>% mutate(concrete = Conc.M) %>% select(word, concrete)
 
 #turn into a matrix
 dic_matrix <- full_join(neg_emo, pos_emo)
@@ -116,22 +127,29 @@ dic_matrix <- full_join(dic_matrix, weak_modal)
 dic_matrix <- full_join(dic_matrix, uncertainty)
 dic_matrix <- full_join(dic_matrix, constraint)
 dic_matrix <- full_join(dic_matrix, futurewords)
+dic_matrix <- full_join(dic_matrix, concrete)
 
-dic_matrix<- dic_matrix %>%
-  replace(is.na(.), 0)
 
 #join
 tbl_tokens1 <- left_join(tbl_tokens, dic_matrix)
-#save(tbl_tokens1, file = "/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/dtm/tbl_tokens1.R" )
 
-#year
-year_words<- tbl_tokens1%>%
+tbl_tokens1 <- tbl_tokens1 %>%
+  select(filename, Year, NAIC_broad, quantile_rank, word, negsent:concrete)%>%
   mutate(possent = ifelse(is.na(possent), 0, possent)) %>%
   mutate(negsent = ifelse(is.na(negsent), 0, negsent)) %>%
   mutate(uncertainty = ifelse(is.na(uncertainty), 0, uncertainty)) %>%
   mutate(constraint = ifelse(is.na(constraint), 0, constraint)) %>%
   mutate(strongmod = ifelse(is.na(strongmod), 0, strongmod)) %>%
-  mutate(weakmod = ifelse(is.na(weakmod), 0, weakmod)) %>%
+  mutate(future = ifelse(is.na(future), 0, future)) %>%
+  mutate(weakmod = ifelse(is.na(weakmod), 0, weakmod))
+
+rm(tbl_tokens)
+gc()
+#save(tbl_tokens1, file = "/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/dtm/tbl_tokens1.R" )
+#format(object.size(tbl_tokens1), units = "Gb") #11.4Gb
+
+#year
+year_words<- tbl_tokens1%>%
   group_by(Year)%>%
   summarize(mean_positive = mean(possent, na.rm =T),
             mean_negative = mean(negsent, na.rm =T),
@@ -139,6 +157,8 @@ year_words<- tbl_tokens1%>%
             mean_constraint = mean(constraint, na.rm =T),
             mean_weakmod = mean(weakmod, na.rm=T),
             mean_strongmod = mean(strongmod, na.rm =T),
+            mean_future = mean(future, na.rm =T),
+            mean_concrete = mean(concrete, na.rm=T),
             N = n())
 
 year_words%>%
@@ -147,8 +167,7 @@ year_words%>%
   geom_point()+
   xlim(1930, 2005)+
   facet_wrap(~varname, ncol =2)+
-  ggtitle("Word Scores over time")
-ggsave("wordscoresovertime2.pdf")
+  ggtitle("Word Scores over time 1 ")
 
 year_words%>%
   gather(key = varname, value = value, mean_constraint, mean_weakmod, mean_strongmod)%>%
@@ -156,15 +175,29 @@ year_words%>%
   geom_point()+
   xlim(1930, 2005)+
   facet_wrap(~varname, ncol =2)+
-  ggtitle("Word Scores over time")
+  ggtitle("Word Scores over time 2")
 
+year_words%>%
+  gather(key = varname, value = value, mean_concrete)%>%
+  ggplot(aes(Year, value, color = varname))+
+  geom_point()+
+  xlim(1930, 2005)+
+  ylim(2, 3.5)+
+  ggtitle("Concrete over time") 
 
+year_words%>%
+  gather(key = varname, value = value, mean_future)%>%
+  ggplot(aes(Year, value, color = varname))+
+  geom_line()+
+  xlim(1930, 2005)+
+  ylim(0, .02)+
+  ggtitle("Future Words over time") 
+```
+
+### Dictionary Words, by Subgroup
+```{r dictionarysub, echo =FALSE}
 #by industry
 tbl_tokens1%>%
-  mutate(possent = ifelse(is.na(possent), 0, possent)) %>%
-  mutate(negsent = ifelse(is.na(negsent), 0, negsent)) %>%
-  mutate(uncertainty = ifelse(is.na(uncertainty), 0, uncertainty)) %>%
-  mutate(constraint = ifelse(is.na(constraint), 0, constraint)) %>%
   group_by(Year, NAIC_broad)%>%
   filter(!is.na(NAIC_broad)) %>%
   summarize(mean_constraint = mean(constraint, na.rm =T),
@@ -178,12 +211,16 @@ tbl_tokens1%>%
   facet_wrap(~varname, scales= "free", ncol =2)+
   ggtitle("Word Scores over time, industry")
 
+tbl_tokens1%>%
+  group_by(Year, NAIC_broad)%>%
+  filter(!is.na(NAIC_broad)) %>%
+  summarize(mean_concrete = mean(concrete, na.rm =T)) %>%
+  ggplot(aes(Year, mean_concrete, group = NAIC_broad, color = NAIC_broad))+
+  geom_line()+
+  ylim(1.5, 3.5)+
+  ggtitle("Concrete Scores over time, industry")
 
 tbl_tokens1%>%
-  mutate(possent = ifelse(is.na(possent), 0, possent)) %>%
-  mutate(negsent = ifelse(is.na(negsent), 0, negsent)) %>%
-  mutate(uncertainty = ifelse(is.na(uncertainty), 0, negsent)) %>%
-  mutate(constraint = ifelse(is.na(constraint), 0, constraint)) %>%
   group_by(Year, quantile_rank)%>%
   summarize(mean_constraint = mean(constraint, na.rm =T),
             mean_positive = mean(possent, na.rm =T),
@@ -251,14 +288,14 @@ top.slopes%>%
 #Graph
 word_types<- c("possent", "negsent", "uncertainty", "constraint", "weakmod", "future")
 
-for (i in word_types){
-  
-graph_word_change(i)
-  
-}
 
-
-
+graph_word_change("possent")
+graph_word_change("negsent")
+graph_word_change("constraint")
+graph_word_change("future")
+graph_word_change("uncertainty")
+graph_word_change("weakmod")
+graph_word_change("strongmod")
 ```
 
 # Readability 
@@ -266,30 +303,30 @@ graph_word_change(i)
 library(quanteda)
 
 #create corpus
-corpus <- corpus(data, docid_field = "filename", text_field = "text")
-
-#readability
-read<-textstat_readability(corpus, measure = c("Flesch", "FOG", "meanSentenceLength", "meanWordSyllables"), remove_hyphens = TRUE, min_sentence_length = 1, max_sentence_length = 10000)
-
-#merge with dates
-read2<-read %>%
-  rename(filename = document)%>%
-  left_join(data)%>%
-  group_by(Year)%>%
-  summarize(mean_fog = mean(FOG, na.rm =T),
-            mean_Flesch = mean(Flesch, na.rm =T),
-            mean_sentencelength = mean(meanSentenceLength, na.rm =T),
-            mean_syllables = mean(meanWordSyllables, na.rm =T),
-            N = n())
-
-read2%>%
-  gather(key = varname, value = value, mean_fog, mean_Flesch, mean_sentencelength, mean_syllables)%>%
-  ggplot(aes(Year, value, color = varname))+
-  geom_point()+
-  xlim(1930, 2005)+
-  ggtitle("Readability score over time")+
-  theme_minimal()
-ggsave("readability.pdf")
+# corpus <- corpus(data_full, docid_field = "filename", text_field = "text")
+# 
+# #readability
+# read<-textstat_readability(corpus, measure = c("Flesch", "FOG", "meanSentenceLength", "meanWordSyllables"), remove_hyphens = TRUE, min_sentence_length = 1, max_sentence_length = 10000)
+# 
+# #merge with dates
+# read2<-read %>%
+#   rename(filename = document)%>%
+#   left_join(data)%>%
+#   group_by(Year)%>%
+#   summarize(mean_fog = mean(FOG, na.rm =T),
+#             mean_Flesch = mean(Flesch, na.rm =T),
+#             mean_sentencelength = mean(meanSentenceLength, na.rm =T),
+#             mean_syllables = mean(meanWordSyllables, na.rm =T),
+#             N = n())
+# 
+# read2%>%
+#   gather(key = varname, value = value, mean_fog, mean_Flesch, mean_sentencelength, mean_syllables)%>%
+#   ggplot(aes(Year, value, color = varname))+
+#   geom_point()+
+#   xlim(1930, 2005)+
+#   ggtitle("Readability score over time")+
+#   theme_minimal()
+# ggsave("readability.pdf")
 
 ```
 
@@ -308,3 +345,213 @@ number_means%>%
   ggtitle("Number words over time")
 ```
 
+# STM Topics
+
+### Main Topics: From 5 Topic Solution
+```{r stm1, echo=FALSE}
+#summarize
+summary<-data_full %>%
+  group_by(Year)%>%
+  summarize(t0 = mean(t0, na.rm=T),
+            t1 = mean(t1, na.rm=T), 
+            t2 = mean(t2, na.rm=T),
+            t3 = mean(t3, na.rm=T),
+            t4 = mean(t4, na.rm=T))
+
+#add keywords
+summary_long<-summary %>%
+  gather(key = topic, value = value, t0:t4) 
+
+summary_long <- summary_long %>%
+  left_join(dtm_parquet_topics)%>%
+  mutate(topic_name = paste(topic, keywords, sep = ": "))
+
+#plot
+ggplot(summary_long, aes(x=Year, y = value, group = topic_name, color = topic_name)) +
+  geom_line()+
+  ggtitle("Topics over time, dichotomized: median split")
+```
+
+### Main Topics: From 5 Topic Solution, by Group
+```{r stm1sub, echo=FALSE}
+
+#BY NAIC
+
+#summarize
+summary<-data_full %>%
+  group_by(Year, NAIC_broad)%>%
+  summarize(t0 = mean(t0, na.rm=T),
+            t1 = mean(t1, na.rm=T), 
+            t2 = mean(t2, na.rm=T),
+            t3 = mean(t3, na.rm=T),
+            t4 = mean(t4, na.rm=T))
+
+#add keywords
+summary_long<-summary %>%
+  gather(key = topic, value = value, t0:t4) 
+
+summary_long <- summary_long %>%
+  left_join(dtm_parquet_topics)%>%
+  mutate(topic_name = paste(topic, keywords, sep = ": "))%>%
+  filter(!is.na(NAIC_broad))
+
+#plot
+ggplot(summary_long, aes(x=Year, y = value, group = NAIC_broad, color = NAIC_broad)) +
+  geom_line()+
+  facet_wrap(~topic)+
+  ggtitle("Topics over time, by NAIC")
+
+#BY SIZE
+
+#summarize
+summary<-data_full %>%
+  group_by(Year, quantile_rank)%>%
+  summarize(t0 = mean(t0, na.rm=T),
+            t1 = mean(t1, na.rm=T), 
+            t2 = mean(t2, na.rm=T),
+            t3 = mean(t3, na.rm=T),
+            t4 = mean(t4, na.rm=T))
+
+#add keywords
+summary_long<-summary %>%
+  gather(key = topic, value = value, t0:t4) 
+
+summary_long <- summary_long %>%
+  left_join(dtm_parquet_topics)%>%
+  mutate(topic_name = paste(topic, keywords, sep = ": "))%>%
+  mutate(quantile_rank = as.factor(quantile_rank))
+
+#plot
+ggplot(summary_long, aes(x=Year, y = value, group = quantile_rank, color = quantile_rank)) +
+  geom_line()+
+  facet_wrap(~topic)+
+  ggtitle("Topics over time, by Size")
+
+
+```
+
+#Lexicon analysis by topics, MEAN SPLIT SCORES
+```{r stm2, echo=FALSE}
+
+#dichotomize topics
+topics<-unique(dtm_parquet_topics$topic)
+years<- sort(unique(data_full$Year))
+
+#median overall
+for (i in topics){
+  
+  #discretize
+   mean.varname <- paste(i, "mean.d" , sep=".")
+   median.varname <- paste(i, "median.d" , sep=".")
+   
+   data_full<-data_full %>%
+     mutate(mean.d= mean(!!as.name(i), na.rm =T ), median.d = median(!!as.name(i), na.rm =T))%>%
+     mutate(!!mean.varname := ifelse(!!as.name(i) >= mean.d, 1, 0))%>%
+     mutate(!!median.varname := ifelse(!!as.name(i) >= median.d, 1, 0))
+}
+
+#merge topics into tokens
+topic_df<- data_full %>%
+  select(filename, t0.mean.d, t1.mean.d, t2.mean.d, t3.mean.d, t4.mean.d)
+
+tbl_tokens_topics<- tbl_tokens1 %>%
+  left_join(topic_df)
+#format(object.size(tbl_tokens_topics), units = "Gb")
+rm(tbl_tokens1)
+gc()
+
+###############################
+#Uncertainty by topic: By Mean
+###############################
+
+#gather by topic, select topics
+tbl_tokens_topics_long<-tbl_tokens_topics%>%
+  gather(key = topic, value = value, t0.mean.d:t4.mean.d) %>%
+  filter(value ==1)
+
+topic_words<- tbl_tokens_topics_long%>%
+  group_by(Year, topic)%>%
+  summarize(mean_positive = mean(possent, na.rm =T),
+            mean_negative = mean(negsent, na.rm =T),
+            mean_uncertainty = mean(uncertainty, na.rm =T),
+            mean_constraint = mean(constraint, na.rm =T),
+            mean_weakmod = mean(weakmod, na.rm=T),
+            mean_strongmod = mean(strongmod, na.rm =T),
+            mean_future = mean(future, na.rm =T),
+            mean_concrete = mean(concrete, na.rm =T),
+            N = n())
+
+ggplot(topic_words, aes(Year, mean_negative, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Neg Word Scores over time, by topic") +
+  ylim(0,.04) +
+  facet_wrap(~topic)
+
+ggplot(topic_words, aes(Year, mean_negative, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Neg Word Scores over time,overall") +
+  ylim(0,.04) 
+  
+ggplot(topic_words, aes(Year, mean_positive, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Positive Word Scores over time, by topic")+
+  facet_wrap(~topic) 
+
+ggplot(topic_words, aes(Year, mean_uncertainty, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Uncertainty Word Scores over time, by topic")+
+  facet_wrap(~topic) +
+  ylim(0, .035)
+
+
+ggplot(topic_words, aes(Year, mean_weakmod, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Weakmod Word Scores over time, by topic")+
+  facet_wrap(~topic) +
+  ylim(0, .013)
+
+ggplot(topic_words, aes(Year, mean_constraint, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Constraint Scores over time, by topic")+
+  facet_wrap(~topic) 
+
+ggplot(topic_words, aes(Year, mean_concrete, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Concrete Scores over time, by topic")+
+  facet_wrap(~topic) +
+  ylim(2.5, 3.1)
+
+ggplot(topic_words, aes(Year, mean_future, group = topic, color = topic))+
+  geom_line()+
+  ggtitle("Future Scores over time, by topic")+
+  facet_wrap(~topic) 
+
+```
+
+
+### STM: Number words (MEAN SPLIT SCORES)
+```{r numberssub}
+
+#merge in numbers
+numbers_topic<- numbers %>%
+  left_join(topic_df)
+
+#wide to long
+numbers_topics_long <- numbers_topic %>%
+  gather(key = topic, value = value, t0.mean.d: t4.mean.d)%>%
+  filter(value ==1)
+
+#means
+number_topics_means<- numbers_topics_long %>%
+  group_by(Year, topic) %>%
+  summarize(mean_per_numbers = mean(percent_numbers, na.rm=T))
+
+#plot
+number_topics_means%>%
+  ggplot(aes(Year, mean_per_numbers, group = topic))+
+  geom_point()+
+  xlim(1930, 2005)+
+  facet_wrap(~topic)+
+  ylim(0, 0.075)+
+  ggtitle("Number words over time")
+```

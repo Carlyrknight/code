@@ -1,0 +1,77 @@
+---
+title: "STM analysis for future perfect project"
+author: "Carly Knight"
+date: "6/27/2020"
+output: html_document
+---
+
+#Setup 
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+library(stats)
+library(zoo)
+library(tidyverse)
+library(TraMineR)
+library(knitr)
+library(lfe)
+library(tidytext)
+library(stm)
+library(cowplot)
+library(dplyr)
+
+setwd("~/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/")
+
+theme_set(theme_minimal(base_size = 14))
+sessionInfo()
+```
+
+# Topics: 5
+```{r  stm5}
+load("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/stm5_futurepara.RData")
+labelTopics(stm5, 1:5)
+
+plot(effects5, "Year", method = "continuous", topics =  1:5,
+     main ="Topics")
+```
+
+
+# Topics: 40
+```{r stm40a}
+load("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/stm40_futurepara.RData")
+labelTopics(stm40, 1:40)
+```
+
+### Topics of interest: 40
+```{r stm40b}
+load("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/stm40_futurepara.RData")
+labelTopics(stm40, c(5, 22, 23, 35, 40 ))
+
+
+effects40 <- estimateEffect(1:40 ~ s(Year),
+                            stm40, metadata = out$meta)
+
+plot(effects40, "Year", method = "continuous", topics = c(5, 22, 23, 35, 40),
+     main ="Topics")
+
+rm(stm40, metadata, effects40, out)
+gc()
+```
+
+# Topics: 60
+```{r stm60}
+load("/Users/carlyknight/Dropbox/PROJECTS/ConceptionsofRisk/data/stm/stm60_futurepara.RData")
+labelTopics(stm60, 1:60)
+```
+
+### Topics of interest: 60
+```{r  stm60b}
+labelTopics(stm60, c(58, 49, 43, 40, 23, 7, 5 ))
+
+plot(effects60, "Year", method = "continuous", topics =  c(58, 49, 43, 40, 23, 7, 5 ),
+     main ="Topics")
+
+tc60<-topicCorr(stm60, "simple")
+plot(tc60, topics= c(58, 49, 43, 40, 23, 7, 5 ), main= "Network correlations among selected in 60 topics")
+```
